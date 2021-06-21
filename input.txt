@@ -1,0 +1,14 @@
+.text
+    Loop:
+     beq $s0, $zero, stopLoop
+     lw $t2, 0($s3)
+     sll $t3, $t2, 3
+     sw $t3, 4($s3)
+     addi $s3, $s3, -4
+     addi $s0, $s0, -1
+     j Loop
+
+    stopLoop:
+     addi $t0, $t0, 5
+     sw $t0, 0($s3)
+

@@ -13,11 +13,16 @@ void init() {
     /// opcode: string: command name, pair<int, int>: binary value and command type: 0 = R, 1 = I, 2 = J
 	/// R_TYPE
 	opcode["add"]  = make_pair(32, 0);
+	opcode["addu"]  = make_pair(33, 0);
+    opcode["sub"]  = make_pair(34, 0);
+	opcode["subu"]  = make_pair(35, 0);
 	opcode["and"]  = make_pair(36, 0);
-	opcode["sub"]  = make_pair(34, 0);
+    opcode["or"]   = make_pair(37, 0);
 	opcode["nor"]  = make_pair(39, 0);
-	opcode["or"]   = make_pair(37, 0);
 	opcode["slt"]  = make_pair(42, 0);
+	opcode["sltu"]  = make_pair(43, 0);
+	opcode["sll"]  = make_pair(0, 0);
+	opcode["srl"]  = make_pair(2, 0);
     /// I_TYPE
 	opcode["addi"] = make_pair(8 << 26, 1);
 	opcode["lw"]   = make_pair(35 << 26, 1);
@@ -26,7 +31,7 @@ void init() {
 	opcode["bne"]  = make_pair(5 << 26, 1);
     /// J_TYPE
 	opcode["j"]    = make_pair(2 << 26, 2);
-
+    opcode["jal"]  = make_pair(3 << 26, 2);
     string reg_list[32] = {"$zero", "$at", "$v0", "$v1",
                         "$a0", "$a1", "$a2", "$a3",
                         "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",
@@ -221,7 +226,7 @@ void BuildLabelTable(vector<string> &input, map<string, int> label) {
     ofs.close();
 }
 
-string GenerateBinary(string cmd) {
+int GenerateBinary(string cmd) {
     /// Arguments: a string of command
     /// Output: binary code
     string classifier = cmd.substr(0, cmd.find(' '));
@@ -235,7 +240,7 @@ string GenerateBinary(string cmd) {
     else {
         binNum = c.J_Type(cmd);
     }
-    return binaryConverter(binNum);
+    return (binNum);
 }
 
 void FirstPass() {
@@ -245,14 +250,15 @@ void FirstPass() {
 }
 
 void SecondPass() {
-    for (int i = 0; i < input.size(); i++) {
-        //int binary = GenerateBinary(input[i]);
-        /// do something here
+    for (string line: input) {
+        cout << line << endl;
+	/// in ra cho dep
+        cout << "> " << "0x" << setfill('0') << setw(8) << right << hex << GenerateBinary(line) << endl;
     }
 }
 
 int main() {
-    freopen("input.in", "r", stdin);
+    freopen("input.txt", "r", stdin);
     string line;
     while (getline(cin, line)) {
         input.push_back(line);

@@ -176,7 +176,6 @@ void DeleteComment(vector<string> &input) {
 void CalculateImmediate(vector<string> input, map<string, int> &label) {
     /// Arguments: lines of input (clear form)
     /// Output: list of calculated label
-	/// input = { "j nxt1", "j nxt2", "nxt1:", "nxt2:", "add $t1, $zero, $zero", "j nxt3", "add $t0, $zero, $zero", "nxt3: add $t3, $zero, $zero" }; ///sample MIPS code
 	int offset = INIT_OFFSET - 4; /// 0x00400000 - 4
 	queue<string> labelQueue; /// contain continuosly labels (there aren't and instruction between them)
 	for (string line: input) {
@@ -187,12 +186,18 @@ void CalculateImmediate(vector<string> input, map<string, int> &label) {
 		if (findLabel == string::npos || findLabel + 1 < line.size()) { /// if label is not found or label is found but there is an instruction after that
  			offset += 4;                                                /// then all labels in queue have the same address at current offset
 			while (!labelQueue.empty()) {
-                string currentLabel = labelQueue.front();
-                labelQueue.pop();
-                label[currentLabel] = offset;
+				string currentLabel = labelQueue.front();
+				labelQueue.pop();
+				label[currentLabel] = offset;
             }
 		}
 	}
+	offset += 4;
+	while (!labelQueue.empty()) {
+        string currentLabel = labelQueue.front();
+        labelQueue.pop();
+        label[currentLabel] = offset;
+    }
 }
 
 void BuildLabelTable(vector<string> &input, map<string, int> label) {
@@ -251,7 +256,7 @@ void FirstPass() {
 
 void SecondPass() {
     for (string line: input) {
-        cout << line << endl;
+    	cout << line << endl;
 	/// in ra cho dep
         cout << "> " << "0x" << setfill('0') << setw(8) << right << hex << GenerateBinary(line) << endl;
     }

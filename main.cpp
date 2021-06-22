@@ -1,10 +1,13 @@
 #include <bits/stdc++.h>
 
+#define INIT_OFFSET 4194304
+
 using namespace std;
 
 vector<string> input;
 map<string, int> reg;
 map<string, int> opcode;
+map<string, int> labelAddress;
 
 void init() {
 	opcode["add"] = 32;
@@ -56,17 +59,34 @@ void init() {
 	reg["$ra"] = 31;
 }
 
-void DeleleComment(vector<string> &input) {
+void DeleteComment(vector<string> &input) {
     /// Arguments: lines of input
     /// Output: In a clear form of command
 }
 
-void CalculateImmediate(vector<string> input, vector<int> &label) {
+void CalculateImmediate(vector<string> input, map<string, int> &label) {
     /// Arguments: lines of input (clear form)
     /// Output: list of calculated label
+	//input = { "j nxt1", "j nxt2", "nxt1:", "nxt2:", "add $t1, $zero, $zero", "j nxt3", "add $t0, $zero, $zero", "nxt3: add $t3, $zero, $zero" }; ///sample MIPS code
+	int offset = INIT_OFFSET - 4; /// 0x00400000 - 4
+	queue<string> labelQueue; /// contain continuosly labels (there aren't and instruction between them)
+	for (string line: input) {
+		size_t findLabel = line.find(":"); /// if there is a ':' in line, there is a label before it
+        if (findLabel != string::npos) { /// if found label
+			labelQueue.push(line.substr(0, findLabel)); /// findLabel is also size of label
+		}
+		if (findLabel == string::npos || findLabel + 1 < line.size()) { /// if label is not found or label is found but there is an instruction after that
+ 			offset += 4;                                                /// then all labels in queue have the same address at current offset
+			while (!labelQueue.empty()) {
+                string currentLabel = labelQueue.front();
+                labelQueue.pop();
+                label[currentLabel] = offset;
+            }
+		}
+	}
 }
 
-void BuildLabelTable(vector<string> &input, vector<int> label) {
+void BuildLabelTable(vector<string> &input, map<string, int> label) {
     /// Arguments: lines of input (clear form); label list
     /// Output: input with no label, also export label table into temp file. ("temp.txt")
 }
@@ -74,13 +94,14 @@ void BuildLabelTable(vector<string> &input, vector<int> label) {
 int GenerateBinary(string cmd) {
     /// Arguments: a string of command
     /// Output: binary code
+    return 0;
 }
 
 void FirstPass() {
-    DeleleComment(input);
-    vector<int> calculatedLabel;
-    CalculateImmediate(input, calculatedLabel);
-    BuildLabelTable(input, calculatedLabel);
+    DeleteComment(input);
+    map<string, int> labelAddress;
+    CalculateImmediate(input, labelAddress);
+    BuildLabelTable(input, labelAddress);
 }
 
 void SecondPass() {

@@ -39,23 +39,109 @@ void init() {
         reg[reg_list[i]] = i;
 }
 
+unsigned int Complement(int n) {
+   int number_of_bits = floor(log2(n))+1;
+
+   // XOR the given integer with poe(2,
+   // number_of_bits-1 and print the result
+   return ((1 << number_of_bits) - 1) ^ n;
+}
+string binaryConverter(unsigned int num) {
+	unsigned int bin;
+	string s = "";
+	unsigned int i = 0;
+	while (num > 0)
+	{
+		i++;
+		bin = num % 2;
+		if (bin) {
+			s += "1";
+		}
+		else {
+			s += "0";
+		}
+		num /= 2;
+	}
+	for (unsigned int j = 32-i; j > 0; j--) {
+		s += "0";
+	}
+	reverse(s.begin(), s.end());
+
+	return s;
+
+}
+
 struct Commands {
     /// Example call:
     /// Commands command;
     /// int value = command.R_Type(0, 1, 2, 3, 0, 0);
-    int R_Type(int opcode, int rs, int rt, int rd, int shamt, int funct) {
-        /// return binary value
-        return 1;
+    unsigned int R_Type(string str) {
+        regex type1("([a-z]+) ([$][a-z]*[0-9]|[$][a-z]*), ([$][a-z]*[0-9]|[$][a-z]*), ([$][a-z]+[0-9]|[$][a-z]+)");
+        smatch matches;
+        regex_search(str, matches, type1);
+        unsigned int binNum = 0;
+        if (!matches.empty()) {
+            binNum = opcode[matches.str(1)].first;
+            binNum += (reg[matches.str(2)] << 11);
+            binNum += (reg[matches.str(3)] << 21);
+            binNum += (reg[matches.str(4)] << 16);
+        }
+        return binNum;
     }
-    int I_Type(int opcode, int rs, int rt, int immediate) {
-        /// return binary value
-        return 1;
+    unsigned int I_Type(string str) {
+        /// addi $t1, $t2, 4; beq $t1, $t2, A; lw $t1, 4($t2)
+        regex type1("([a-z]+) {1,10}([$][a-z]+[0-9]*|[$][a-z]+), {1,10}([$][a-z]+[0-9]*|[$][a-z]+), {1,10}(.+)?");
+        regex type2("([a-z]+) {1,10}([$][a-z]+[0-9]*|[$][a-z]+), {1,10}([0-9]+) {0,10}[(]([$][a-z]+[0-9]*|[$][a-z]+)[)]");
+        vector<smatch> matches(2);
+        regex_search(str, matches[0], type1);
+        regex_search(str, matches[1], type2);
+
+        unsigned int binNum = 0;
+        if (!matches[0].empty()) {
+            binNum = opcode[matches[0].str(1)].first;
+            binNum += (reg[matches[0].str(3)] << 21);
+            binNum += (reg[matches[0].str(2)] << 16);
+            if (labelAddress.find(matches[0].str(4)) != labelAddress.end()) {
+                int imm = (labelAddress[matches[0].str(4)] - labelAddress[str] - 4) >> 2;
+                imm %= 2 << 15;
+                binNum += imm;
+            }
+            else {
+                stringstream val(matches[0].str(4));
+                unsigned int num = 0;
+                val >> num;
+                if (num < 0) num = Complement(num);
+                num %= 2<<15;
+                binNum += num;
+            }
+        }
+        else if (!matches[1].empty()) {
+            binNum = opcode[matches[1].str(1)].first;
+            binNum += (reg[matches[1].str(4)] << 21);
+            binNum += (reg[matches[1].str(2)] << 16);
+            stringstream val(matches[1].str(3));
+            unsigned int num = 0;
+            val >> num;
+            if (num < 0) num = Complement(num);
+            num %= 2<<15;
+            binNum += num;
+        }
+        return binNum;
     }
-    int J_Type(int opcode, int address) {
-        /// return binary value
-        return 1;
+    int J_Type(string str) {
+        regex type1("([j]{1}) {1,10}([a-zA-Z]{1}[a-zA-Z0-9$._]*)");
+        smatch matches;
+        unsigned int binNum = 0;
+        regex_search(str, matches, type1);
+        if (!matches.empty()) {
+            binNum = opcode[matches.str(1)].first;
+            int address = labelAddress[matches.str(2)] % (2<<28);
+            address >>= 2;
+            binNum += address;
+        }
+        return binNum;
     }
-};
+} c;
 
 void DeleteComment(vector<string> &input) {
     /// Arguments: lines of input
@@ -114,16 +200,17 @@ void BuildLabelTable(vector<string> &input, map<string, int> label) {
         if (line == "") continue;
         for (int i = 0; i < line.size(); i++) {
             if (line[i] == ':') {
-                line.erase(line.begin(), line.begin() + i);
-                if (line[0] == ' ')
+                line.erase(line.begin(), line.begin() + i + 1);
+                while (line[0] == ' ') {
                     line.erase(line.begin());
+                }
                 break;
             }
         }
-        clearInput.push_back(line);
+        if (line != "")
+            clearInput.push_back(line);
     }
     input = clearInput;
-
     /// export label table to file
     /// line format: <label name> <address value>
     fstream ofs;
@@ -134,11 +221,21 @@ void BuildLabelTable(vector<string> &input, map<string, int> label) {
     ofs.close();
 }
 
-int GenerateBinary(string cmd) {
+string GenerateBinary(string cmd) {
     /// Arguments: a string of command
     /// Output: binary code
-    string regex_pattern = "";
-    return 0;
+    string classifier = cmd.substr(0, cmd.find(' '));
+    unsigned int binNum = 0;
+    if (opcode[classifier].second == 0) {
+        binNum = c.R_Type(cmd);
+    }
+    else if (opcode[classifier].second == 1) {
+        binNum = c.I_Type(cmd);
+    }
+    else {
+        binNum = c.J_Type(cmd);
+    }
+    return binaryConverter(binNum);
 }
 
 void FirstPass() {
@@ -149,13 +246,13 @@ void FirstPass() {
 
 void SecondPass() {
     for (int i = 0; i < input.size(); i++) {
-        int binary = GenerateBinary(input[i]);
+        //int binary = GenerateBinary(input[i]);
         /// do something here
     }
 }
 
 int main() {
-    freopen("input.txt", "r", stdin);
+    freopen("input.in", "r", stdin);
     string line;
     while (getline(cin, line)) {
         input.push_back(line);

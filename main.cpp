@@ -62,12 +62,33 @@ void init() {
 void DeleteComment(vector<string> &input) {
     /// Arguments: lines of input
     /// Output: In a clear form of command
+    vector<string> clearInput;
+
+    for (int t = 0; t < input.size(); t++) {
+        string s = input[t];
+        if (s == "") continue;
+        for (int i = 0; i < s.size() - 1; i++) {
+            if (s[i] == '#') {
+                s.erase(i, s.size() - i);
+                break;
+            }
+            else if (s[i] != ' ' && s[i + 1] == ' ') {
+                /// have a form: "abcxyz "
+                s[i + 1] = '*';
+            }
+        }
+        s.erase(remove(s.begin(), s.end(), ' '), s.end());
+        replace(s.begin(), s.end(), '*', ' ');
+        if (s != "")
+            clearInput.push_back(s);
+    }
+    input = clearInput;
 }
 
 void CalculateImmediate(vector<string> input, map<string, int> &label) {
     /// Arguments: lines of input (clear form)
     /// Output: list of calculated label
-	//input = { "j nxt1", "j nxt2", "nxt1:", "nxt2:", "add $t1, $zero, $zero", "j nxt3", "add $t0, $zero, $zero", "nxt3: add $t3, $zero, $zero" }; ///sample MIPS code
+	/// input = { "j nxt1", "j nxt2", "nxt1:", "nxt2:", "add $t1, $zero, $zero", "j nxt3", "add $t0, $zero, $zero", "nxt3: add $t3, $zero, $zero" }; ///sample MIPS code
 	int offset = INIT_OFFSET - 4; /// 0x00400000 - 4
 	queue<string> labelQueue; /// contain continuosly labels (there aren't and instruction between them)
 	for (string line: input) {
@@ -114,7 +135,7 @@ void SecondPass() {
 int main() {
     freopen("input.txt", "r", stdin);
     string line;
-    while (cin >> line) {
+    while (getline(cin, line)) {
         input.push_back(line);
     }
     init();
